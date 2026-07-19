@@ -12,6 +12,22 @@ const formatTime = (seconds: number) => {
   return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`
 }
 
+const getNarratedSentence = (narration: string, characterIndex: number) => {
+  const sentences = narration.match(/[^.!?]+[.!?]+|[^.!?]+$/g) ?? [narration]
+  let sentenceEnd = 0
+
+  for (let index = 0; index < sentences.length; index += 1) {
+    const sentence = sentences[index]
+    sentenceEnd += sentence.length
+
+    if (characterIndex < sentenceEnd) {
+      return { index, text: sentence.trim() }
+    }
+  }
+
+  return { index: sentences.length - 1, text: sentences[sentences.length - 1]?.trim() ?? narration }
+}
+
 const selectNarratorVoice = (voices: SpeechSynthesisVoice[]) => {
   const englishVoices = voices.filter((voice) => voice.lang.toLowerCase().startsWith('en'))
   const candidates = englishVoices.length ? englishVoices : voices
@@ -183,8 +199,7 @@ export function VideoPlayerCanvas({ payload, onFinished }: VideoPlayerCanvasProp
       utterance.voice = selectedVoice
     }
     utterance.onstart = () => {
-      const firstWordEnd = segment.narration_text.indexOf(' ')
-      setSubtitleCharacterIndex(firstWordEnd === -1 ? segment.narration_text.length : firstWordEnd)
+      setSubtitleCharacterIndex(0)
     }
     utterance.onboundary = (event) => {
       if (event.name !== 'word') return
@@ -254,22 +269,14 @@ export function VideoPlayerCanvas({ payload, onFinished }: VideoPlayerCanvasProp
   const diagramItems = currentSegment.visual.type === 'diagram'
     ? currentSegment.visual.content.split('->').map((item) => item.trim()).filter(Boolean)
     : []
-  const subtitleIndex = Math.min(subtitleCharacterIndex, currentSegment.narration_text.length)
-  const spokenWords = currentSegment.narration_text
-    .slice(0, subtitleIndex)
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-  const subtitleStartIndex = Math.max(0, spokenWords.length - 6)
-  const visibleSubtitleWords = spokenWords.slice(subtitleStartIndex)
+  const activeSentence = getNarratedSentence(
+    currentSegment.narration_text,
+    Math.min(subtitleCharacterIndex, currentSegment.narration_text.length),
+  )
   const visualSubtitle = (
     <div aria-live="polite" className="visual-subtitle absolute right-4 bottom-4 left-4 rounded-xl px-4 py-3 text-center text-sm leading-6 sm:right-8 sm:bottom-6 sm:left-8 sm:px-6 sm:py-4 sm:text-base sm:leading-7">
-      <p className="m-0">
-        {visibleSubtitleWords.map((word, index) => (
-          <span className="subtitle-word" key={`${currentSegment.id}-${subtitleStartIndex + index}`}>
-            {word}{' '}
-          </span>
-        ))}
+      <p className="subtitle-sentence m-0" key={`${currentSegment.id}-${activeSentence.index}`}>
+        {activeSentence.text}
       </p>
     </div>
   )
