@@ -12,7 +12,7 @@ const formatTime = (seconds: number) => {
   return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`
 }
 
-const getNarratedSentence = (narration: string, characterIndex: number) => {
+const getNarratedSentenceIndex = (narration: string, characterIndex: number) => {
   const sentences = narration.match(/[^.!?]+[.!?]+|[^.!?]+$/g) ?? [narration]
   let sentenceEnd = 0
 
@@ -21,12 +21,16 @@ const getNarratedSentence = (narration: string, characterIndex: number) => {
     sentenceEnd += sentence.length
 
     if (characterIndex < sentenceEnd) {
-      return { index, text: sentence.trim() }
+      return index
     }
   }
 
-  return { index: sentences.length - 1, text: sentences[sentences.length - 1]?.trim() ?? narration }
+  return sentences.length - 1
 }
+
+const splitNarrationIntoSentences = (narration: string) => (
+  narration.match(/[^.!?]+[.!?]+|[^.!?]+$/g)?.map((sentence) => sentence.trim()).filter(Boolean) ?? [narration]
+)
 
 const selectNarratorVoice = (voices: SpeechSynthesisVoice[]) => {
   const englishVoices = voices.filter((voice) => voice.lang.toLowerCase().startsWith('en'))
@@ -269,17 +273,29 @@ export function VideoPlayerCanvas({ payload, onFinished }: VideoPlayerCanvasProp
   const diagramItems = currentSegment.visual.type === 'diagram'
     ? currentSegment.visual.content.split('->').map((item) => item.trim()).filter(Boolean)
     : []
-  const activeSentence = getNarratedSentence(
+  const narrationSentences = splitNarrationIntoSentences(currentSegment.narration_text)
+  const activeSentenceIndex = getNarratedSentenceIndex(
     currentSegment.narration_text,
     Math.min(subtitleCharacterIndex, currentSegment.narration_text.length),
   )
-  const visualSubtitle = (
-    <div aria-live="polite" className="visual-subtitle absolute right-4 bottom-4 left-4 rounded-xl px-4 py-3 text-center text-sm leading-6 sm:right-8 sm:bottom-6 sm:left-8 sm:px-6 sm:py-4 sm:text-base sm:leading-7">
-      <p className="subtitle-sentence m-0" key={`${currentSegment.id}-${activeSentence.index}`}>
-        {activeSentence.text}
-      </p>
+  const visibleCaptions = narrationSentences.slice(activeSentenceIndex, activeSentenceIndex + 3)
+  const captionContent = (
+    <div aria-live="polite" className="subtitle-sentences" key={`${currentSegment.id}-${activeSentenceIndex}`}>
+      {visibleCaptions.map((sentence, index) => (
+        <p className={`subtitle-sentence m-0 ${index === 0 ? 'subtitle-sentence-active' : ''}`} key={`${currentSegment.id}-${activeSentenceIndex + index}`}>
+          {sentence}
+        </p>
+      ))}
     </div>
   )
+  const visualSubtitle = (
+    <div className="visual-subtitle absolute right-4 bottom-4 left-4 rounded-xl px-4 py-3 text-left text-sm leading-6 sm:right-8 sm:bottom-6 sm:left-8 sm:px-6 sm:py-4 sm:text-base sm:leading-7">
+      {captionContent}
+    </div>
+  )
+  const hasRenderableVisual = currentSegment.visual.type === 'code'
+    || currentSegment.visual.type === 'diagram'
+    || Boolean(currentSegment.imageDataUrl)
 
   return (
     <section className="lesson-page flex min-h-screen flex-col px-4 py-5 sm:px-7 sm:py-7">
@@ -326,24 +342,16 @@ export function VideoPlayerCanvas({ payload, onFinished }: VideoPlayerCanvasProp
             </div>
           )}
 
-          {(currentSegment.visual.type === 'image' || currentSegment.visual.type === 'analogy') && (
+          {(currentSegment.visual.type === 'image' || currentSegment.visual.type === 'analogy') && currentSegment.imageDataUrl && (
             <div className="visual-canvas relative flex min-h-72 flex-1 overflow-hidden rounded-xl border border-slate-500/30 sm:min-h-96">
               <div className="visual-grid" />
-              {currentSegment.imageDataUrl ? (
-                <img
-                  alt={`Lesson illustration for step ${currentSegmentIndex + 1}`}
-                  className="generated-visual absolute inset-0 size-full object-cover"
-                  decoding="async"
-                  key={currentSegment.id}
-                  src={currentSegment.imageDataUrl}
-                />
-              ) : (
-                <div className="analogy-visual relative z-10 m-auto max-w-xl rounded-2xl px-6 py-8 text-center sm:px-10">
-                  <span className="text-4xl" aria-hidden="true">✦</span>
-                  <h2 className="mt-3 text-lg font-bold text-white">{currentSegment.visual.title}</h2>
-                  <p className="mt-3 text-sm leading-7 text-slate-200 sm:text-base">{currentSegment.visual.content}</p>
-                </div>
-              )}
+              <img
+                alt={`Lesson illustration for step ${currentSegmentIndex + 1}`}
+                className="generated-visual absolute inset-0 size-full object-cover"
+                decoding="async"
+                key={currentSegment.id}
+                src={currentSegment.imageDataUrl}
+              />
               <div className="absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-[#06111c]/70 to-transparent" />
               <div className="absolute top-4 left-4 rounded-full border border-white/15 bg-slate-950/70 px-3 py-1.5 text-[0.65rem] font-bold tracking-[0.14em] text-sky-200 uppercase backdrop-blur">
                 Visual {currentSegmentIndex + 1}
@@ -352,9 +360,9 @@ export function VideoPlayerCanvas({ payload, onFinished }: VideoPlayerCanvasProp
             </div>
           )}
 
-          {!currentSegment.visual && (
-            <div aria-live="polite" className="lesson-caption mt-4 rounded-xl px-5 py-4 text-center text-sm leading-7 text-white sm:px-7 sm:py-5 sm:text-base">
-              <p>{currentSegment.narration_text}</p>
+          {!hasRenderableVisual && (
+            <div className="lesson-narration mx-auto flex w-full max-w-3xl items-center rounded-2xl px-5 py-6 sm:px-8 sm:py-8">
+              {captionContent}
             </div>
           )}
         </div>
