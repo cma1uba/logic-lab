@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react'
 import type { LogictabPayload } from '../types'
 
-const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? 'https://logictab-2.onrender.com').replace(/\/$/, '')
+const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? 'https://logic-lab-production.up.railway.app').replace(/\/$/, '')
 const GENERATE_API_URL = `${apiBaseUrl}/api/generate`
 
 type ModelType = 'openai' | 'claude' | 'gemini'
@@ -9,6 +9,29 @@ type ModelType = 'openai' | 'claude' | 'gemini'
 const isRecord = (value: unknown): value is Record<string, unknown> => (
   typeof value === 'object' && value !== null
 )
+
+const isLogictabPayload = (value: unknown): value is LogictabPayload => {
+  if (!isRecord(value) || typeof value.topic !== 'string'
+    || !Array.isArray(value.segments) || !Array.isArray(value.quiz)) {
+    return false
+  }
+
+  return value.segments.every((segment) => (
+    isRecord(segment)
+    && typeof segment.id === 'number'
+    && typeof segment.narration_text === 'string'
+    && typeof segment.visual_prompt === 'string'
+    && typeof segment.durationSeconds === 'number'
+  )) && value.quiz.every((question) => (
+    isRecord(question)
+    && typeof question.question === 'string'
+    && Array.isArray(question.options)
+    && question.options.every((option) => typeof option === 'string')
+    && typeof question.correct_answer === 'string'
+    && question.options.includes(question.correct_answer)
+    && typeof question.explanation === 'string'
+  ))
+}
 
 export function useExplainQuery() {
   const [loading, setLoading] = useState(false)
@@ -46,23 +69,25 @@ export function useExplainQuery() {
       const responseBody: unknown = isJsonResponse ? await response.json() : null
 
       if (!response.ok) {
-        const message = isRecord(responseBody) && typeof responseBody.error === 'string'
-          ? responseBody.error
-          : 'Unable to generate a lesson right now.'
+        const message = response.status === 502
+          ? 'The lesson server is unavailable. Redeploy the backend, then try again.'
+          : isRecord(responseBody) && typeof responseBody.error === 'string'
+            ? responseBody.error
+            : 'Unable to generate a lesson right now.'
         throw new Error(message)
       }
 
       const videoSteps = isRecord(responseBody) ? responseBody.video_steps : undefined
       const quiz = isRecord(responseBody) ? responseBody.quiz : undefined
 
-      if (!Array.isArray(videoSteps) || !Array.isArray(quiz)) {
-        throw new Error('The selected provider returned an invalid lesson payload.')
+      const payload = {
+        topic: query.trim(),
+        segments: videoSteps,
+        quiz,
       }
 
-      const payload: LogictabPayload = {
-        topic: query.trim(),
-        segments: videoSteps as LogictabPayload['segments'],
-        quiz: quiz as LogictabPayload['quiz'],
+      if (!isLogictabPayload(payload)) {
+        throw new Error('The selected provider returned an invalid lesson payload.')
       }
 
       setData(payload)

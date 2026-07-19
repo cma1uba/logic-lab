@@ -5,7 +5,7 @@
   "description": "A logic workspace in the Chrome Side Panel.",
   "permissions": ["sidePanel", "activeTab"],
   "host_permissions": [
-    "https://logictab-2.onrender.com/*",
+    "https://logic-lab-production.up.railway.app/*",
     "http://localhost/*"
   ],
   "action": {

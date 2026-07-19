@@ -1,0 +1,4 @@
+[deploy]
+startCommand = "npm run server"
+healthcheckPath = "/health"
+healthcheckTimeout = 100

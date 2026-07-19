@@ -137,6 +137,11 @@ app.use(cors({
   },
 }))
 app.use(express.json({ limit: '32kb' }))
+
+app.get('/health', (_req, res) => {
+  res.status(200).json({ status: 'healthy' })
+})
+
 app.use(enforceRateLimit)
 
 app.post('/api/generate', async (req, res) => {
@@ -165,7 +170,7 @@ app.post('/api/generate', async (req, res) => {
     return res.status(400).json({ error: `An API key is required for ${modelType}.` })
   }
 
-  const userInput = `Topic: ${prompt.trim()}\nTone: ${tone.trim()}`
+  const userInput = `Topic: ${prompt.trim()}\nTone: ${tone.trim()}\n\nReturn exactly three video_steps. Every step must contain id (number), narration_text (string), visual_prompt (string), and durationSeconds (number). Return exactly three quiz questions. Every question must contain question (string), options (string[]), correct_answer (one of the options), and explanation (string).`
 
   try {
     let generatedText
@@ -188,7 +193,7 @@ app.post('/api/generate', async (req, res) => {
       case 'claude': {
         const client = new Anthropic({ apiKey: activeKey })
         const response = await client.messages.create({
-          model: 'claude-3-5-sonnet-20240620',
+          model: 'claude-sonnet-4-20250514',
           max_tokens: 2_400,
           system: generateInstructions,
           messages: [{ role: 'user', content: userInput }],
@@ -200,7 +205,7 @@ app.post('/api/generate', async (req, res) => {
       case 'gemini': {
         const client = new GoogleGenAI({ apiKey: activeKey })
         const response = await client.models.generateContent({
-          model: 'gemini-1.5-flash',
+          model: 'gemini-3.5-flash',
           contents: userInput,
           config: {
             systemInstruction: generateInstructions,
