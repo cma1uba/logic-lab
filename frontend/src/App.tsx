@@ -38,7 +38,7 @@ const isLogictabPayload = (value: unknown): value is LogictabPayload => {
 
 function App() {
   const [appState, setAppState] = useState<AppState>('idle')
-  const [currentTone, setCurrentTone] = useState('ELI5')
+  const [currentTone, setCurrentTone] = useState('Standard')
   const [payload, setPayload] = useState<LogictabPayload | null>(null)
   const [score, setScore] = useState(0)
   const [modelType, setModelType] = useState<ModelType>('openai')
@@ -103,8 +103,17 @@ function App() {
   const handleReset = () => {
     setPayload(null)
     setScore(0)
-    setCurrentTone('ELI5')
+    setCurrentTone('Standard')
     setAppState('idle')
+  }
+
+  const handleVideoFinished = () => {
+    if (currentTone === 'Deep Dive' && payload?.quiz.length) {
+      setAppState('quiz')
+      return
+    }
+
+    handleReset()
   }
 
   return (
@@ -125,7 +134,7 @@ function App() {
       {appState === 'generating' && <GeneratingLoader tone={currentTone} />}
 
       {appState === 'playing' && payload && (
-        <VideoPlayerCanvas payload={payload} onFinished={() => setAppState('quiz')} />
+        <VideoPlayerCanvas payload={payload} onFinished={handleVideoFinished} />
       )}
 
       {appState === 'quiz' && payload && (

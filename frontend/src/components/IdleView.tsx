@@ -32,7 +32,7 @@ export function IdleView({
   onModelTypeChange,
 }: IdleViewProps) {
   const [query, setQuery] = useState('')
-  const [tone, setTone] = useState('ELI5')
+  const [tone, setTone] = useState('Standard')
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -108,7 +108,6 @@ export function IdleView({
                 onChange={(event) => setTone(event.target.value)}
                 value={tone}
               >
-                <option>ELI5</option>
                 <option>Standard</option>
                 <option>Deep Dive</option>
               </select>

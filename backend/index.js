@@ -16,7 +16,7 @@ const requestBuckets = new Map()
 
 const app = express()
 
-const instructions = "You are Logictab AI, an elite educational agent. Analyze the user's topic and output a single, minified JSON object matching the 'LogictabPayload' type. Divide the explanation into 3 distinct, chronologically sequential segments (each around 20-30 seconds of narration text when spoken). Follow the provided user tone (e.g., ELI5 should use simple analogies, Deep Dive should use technical terms). Also generate 3 highly relevant multiple-choice quiz questions based strictly on the facts in your narration text, including an explanation of why the correct answer is right."
+const instructions = "You are Logictab AI, an elite educational agent. Analyze the user's topic and output a single, minified JSON object matching the 'LogictabPayload' type. Divide the explanation into 3 distinct, chronologically sequential segments (each around 20-30 seconds of narration text when spoken). Standard should be concise and accessible, while Deep Dive should use technical terms and fuller detail."
 const payloadSchema = {
   type: 'object',
   additionalProperties: false,
@@ -83,8 +83,17 @@ const generatePayloadSchema = {
   },
 }
 
-const generateInstructions = 'You are an AI teaching assistant. Generate a video script timeline and a quiz based on the user topic. Respond ONLY with a valid JSON object fitting the LogictabPayload schema: { video_steps: [...], quiz: [...] }.'
+const passiveGeneratePayloadSchema = {
+  ...generatePayloadSchema,
+  properties: {
+    ...generatePayloadSchema.properties,
+    quiz: { type: 'array', maxItems: 0, items: payloadSchema.properties.quiz.items },
+  },
+}
+
+const generateInstructions = 'You are an AI teaching assistant. Generate a video script timeline based on the user topic. For Deep Dive lessons, also generate a knowledge-check quiz. Respond ONLY with a valid JSON object fitting the LogictabPayload schema: { video_steps: [...], quiz: [...] }.'
 const supportedModelTypes = new Set(['openai', 'claude', 'gemini'])
+const supportedTones = new Set(['Standard', 'Deep Dive'])
 
 const getTextBlock = (content) => content.find((block) => block.type === 'text')?.text
 
@@ -201,8 +210,8 @@ app.use(enforceRateLimit)
 app.post('/api/generate', async (req, res) => {
   const { prompt, tone, modelType, apiKey } = req.body ?? {}
 
-  if (typeof prompt !== 'string' || !prompt.trim() || typeof tone !== 'string' || !tone.trim()) {
-    return res.status(400).json({ error: 'Both prompt and tone are required.' })
+  if (typeof prompt !== 'string' || !prompt.trim() || typeof tone !== 'string' || !supportedTones.has(tone)) {
+    return res.status(400).json({ error: 'prompt is required and tone must be Standard or Deep Dive.' })
   }
 
   if (typeof modelType !== 'string' || !supportedModelTypes.has(modelType)) {
@@ -224,7 +233,10 @@ app.post('/api/generate', async (req, res) => {
     return res.status(400).json({ error: `An API key is required for ${modelType}.` })
   }
 
-  const userInput = `Topic: ${prompt.trim()}\nTone: ${tone.trim()}\n\nReturn exactly three video_steps. Every step must contain id (number), narration_text (string), visual_prompt (string), and durationSeconds (number). Return exactly three quiz questions. Every question must contain question (string), options (string[]), correct_answer (one of the options), and explanation (string).`
+  const isDeepDive = tone === 'Deep Dive'
+  const userInput = `Topic: ${prompt.trim()}\nTone: ${tone}\n\nReturn exactly three video_steps. Every step must contain id (number), narration_text (string), visual_prompt (string), and durationSeconds (number). ${isDeepDive
+    ? 'Return exactly three quiz questions. Every question must contain question (string), options (string[]), correct_answer (one of the options), and explanation (string).'
+    : 'This is a passive Standard lesson: return quiz as an empty array.'}`
 
   try {
     let generatedText
@@ -264,7 +276,7 @@ app.post('/api/generate', async (req, res) => {
           config: {
             systemInstruction: generateInstructions,
             responseMimeType: 'application/json',
-            responseSchema: generatePayloadSchema,
+            responseSchema: isDeepDive ? generatePayloadSchema : passiveGeneratePayloadSchema,
           },
         })
         generatedText = response.text

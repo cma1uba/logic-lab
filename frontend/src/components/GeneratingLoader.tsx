@@ -5,7 +5,7 @@ interface GeneratingLoaderProps {
 }
 
 const generationQuotes = [
-  'Structuring custom educational quiz…',
+  'Building a focused lesson timeline…',
   'Synthesizing high-fidelity segments…',
   'Designing visual learning prompts…',
   'Preparing your guided explanation…',
