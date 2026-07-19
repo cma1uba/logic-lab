@@ -1,26 +1,49 @@
 # Logictab
 
-Logictab is split into a browser-extension frontend and an AI proxy backend.
+Logictab is a Manifest V3 Chrome Side Panel extension that turns a question into a narrated visual lesson. It generates an explanation timeline, supporting visuals, and—when using **Deep Dive**—a short knowledge check.
 
-```text
-logic-lab/
-├── frontend/                 # React, TypeScript, Vite, and Chrome extension assets
-│   ├── src/
-│   ├── public/manifest.json
-│   ├── background.js
-│   └── .env.example
-├── backend/                  # Express API and provider routing
-│   ├── index.js
-│   └── .env.example
-├── package.json              # Shared scripts and dependencies
-└── eslint.config.js
+## Stack
+
+- **Frontend:** React 19, TypeScript, Vite, Tailwind CSS
+- **Extension:** Chrome Manifest V3 Side Panel API
+- **Backend:** Node.js, Express, CORS
+- **AI providers:** OpenAI, Anthropic Claude, and Google Gemini
+
+## Use the frontend with the live Railway backend
+
+Requires **Node.js 20.19+**.
+
+Clone the repository and install its dependencies:
+
+```bash
+git clone <your-github-repository-url>
+cd logic-lab
+npm install
 ```
 
-## Commands
+Create `frontend/.env` from `frontend/.env.example`. The repository is preconfigured to use the deployed Railway API; keep or add:
 
-- `npm run dev` — run the Vite frontend.
-- `npm run server` — run the Express backend.
-- `npm run build` — build the unpacked Chrome extension into `frontend/dist`.
-- `npm run validate` — lint, type-check, and build the frontend.
+```env
+VITE_API_BASE_URL=https://logic-lab-production.up.railway.app
+```
 
-Copy the relevant `.env.example` file before configuring a local frontend or backend environment. For Chrome, load `frontend/dist` as the unpacked extension after a production build.
+Build the Chrome extension:
+
+```bash
+npm run build
+```
+
+Then open `chrome://extensions`, enable **Developer mode**, choose **Load unpacked**, and select `frontend/dist`.
+
+### Add your AI provider key
+
+Open Logictab from Chrome’s Side Panel, select **Lesson settings**, choose **OpenAI**, **Claude**, or **Gemini**, and paste the corresponding API key. The key is saved only in that browser’s local extension storage and is sent with generation requests to the Railway backend.
+
+You do not need to run the backend locally to use the deployed version. To self-host it instead, copy `backend/.env.example` to `backend/.env`, configure provider keys, and run `npm run server`.
+
+## Useful commands
+
+- `npm run check` — type-check the frontend
+- `npm run lint` — lint frontend and backend code
+- `npm run validate` — lint, type-check, and build
+- `npm run build` — create the production extension in `frontend/dist`
