@@ -91,7 +91,19 @@ const passiveGeneratePayloadSchema = {
   },
 }
 
-const generateInstructions = 'You are an AI teaching assistant. Generate a video script timeline based on the user topic. For Deep Dive lessons, also generate a knowledge-check quiz. Respond ONLY with a valid JSON object fitting the LogictabPayload schema: { video_steps: [...], quiz: [...] }.'
+const generateInstructions = `You are Logictab AI, an expert learning-experience designer and teaching assistant.
+
+Before producing the response, privately plan the best explanation for the learner's question:
+1. Identify the direct answer and any prerequisite ideas needed to understand it.
+2. Order the lesson from intuition, to mechanism, to a concrete application or takeaway.
+3. Choose one focused visual concept per step that makes the narration easier to understand.
+4. Match the requested learning style: Standard is concise and passive; Deep Dive is more technical and thorough.
+
+Then generate a cohesive video script timeline. Every video step must have narration that naturally leads into the next step, plus a detailed visual_prompt for a standalone educational illustration. The visual_prompt must describe the subject, composition, important relationships, and visual style; it must not rely on labels or written text inside the image.
+
+For Deep Dive lessons, also create a knowledge-check quiz that tests only facts taught in the narration. For Standard lessons, return an empty quiz array.
+
+Respond ONLY with a valid JSON object fitting the LogictabPayload schema: { video_steps: [...], quiz: [...] }. Do not reveal the private planning process or include markdown.`
 const supportedModelTypes = new Set(['openai', 'claude', 'gemini'])
 const supportedTones = new Set(['Standard', 'Deep Dive'])
 
