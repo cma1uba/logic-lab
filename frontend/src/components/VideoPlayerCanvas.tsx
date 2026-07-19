@@ -15,7 +15,6 @@ const formatTime = (seconds: number) => {
 export function VideoPlayerCanvas({ payload, onFinished }: VideoPlayerCanvasProps) {
   const [currentSegmentIndex, setCurrentSegmentIndex] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
-  const [spokenText, setSpokenText] = useState('')
   const segmentIndexRef = useRef(0)
   const finishedRef = useRef(false)
   const onFinishedRef = useRef(onFinished)
@@ -53,15 +52,8 @@ export function VideoPlayerCanvas({ payload, onFinished }: VideoPlayerCanvasProp
 
     segmentIndexRef.current = index
     setCurrentSegmentIndex(index)
-    setSpokenText('')
 
     const utterance = new SpeechSynthesisUtterance(segment.narration_text)
-    utterance.onboundary = (event) => {
-      if (event.name !== 'word') return
-
-      const nextSpace = segment.narration_text.indexOf(' ', event.charIndex)
-      setSpokenText(segment.narration_text.slice(0, nextSpace === -1 ? undefined : nextSpace))
-    }
     utterance.onend = () => {
       if (segmentIndexRef.current === index && !finishedRef.current) {
         speakSegment(index + 1)
@@ -131,9 +123,13 @@ export function VideoPlayerCanvas({ payload, onFinished }: VideoPlayerCanvasProp
               <span className="concept-label">Visual prompt</span>
               <p>{currentSegment.visual_prompt}</p>
             </div>
-            <div className="visual-caption absolute right-4 bottom-4 left-4 rounded-xl px-4 py-3 text-sm leading-relaxed text-slate-200 backdrop-blur sm:right-auto sm:max-w-md">
-              {spokenText || currentSegment.narration_text}
-            </div>
+          </div>
+
+          <div aria-live="polite" className="lesson-caption mt-4 rounded-xl px-5 py-4 text-center text-sm leading-7 text-white sm:px-7 sm:py-5 sm:text-base">
+            <span className="mb-1 block text-[0.65rem] font-bold tracking-[0.16em] text-sky-300 uppercase">
+              Now explaining
+            </span>
+            <p>{currentSegment.narration_text}</p>
           </div>
         </div>
 
