@@ -24,6 +24,11 @@ const isLogictabPayload = (value: unknown): value is LogictabPayload => {
       && typeof segment.narration_text === 'string'
       && typeof segment.visual_prompt === 'string'
       && typeof segment.durationSeconds === 'number'
+      && typeof segment.visual === 'object'
+      && segment.visual !== null
+      && ['image', 'code', 'diagram', 'analogy'].includes(segment.visual.type)
+      && typeof segment.visual.title === 'string'
+      && typeof segment.visual.content === 'string'
     ))
     && Array.isArray(payload.quiz)
     && payload.quiz.every((question) => (

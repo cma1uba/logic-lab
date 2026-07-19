@@ -39,7 +39,9 @@ export function VideoPlayerCanvas({ payload, onFinished }: VideoPlayerCanvasProp
   const segmentElapsedRef = useRef(0)
   const segmentStartedAtRef = useRef<number | null>(null)
   const animationFrameRef = useRef<number | null>(null)
+  const lastElapsedCommitRef = useRef(0)
   const isPlayingRef = useRef(false)
+  const progressBarRef = useRef<HTMLDivElement>(null)
   const finishedRef = useRef(false)
   const onFinishedRef = useRef(onFinished)
   const narratorVoiceRef = useRef<SpeechSynthesisVoice | null>(null)
@@ -77,9 +79,16 @@ export function VideoPlayerCanvas({ payload, onFinished }: VideoPlayerCanvasProp
   )
   const currentSegment = payload.segments[currentSegmentIndex]
   const elapsedDuration = Math.min(totalDuration, completedDuration + segmentElapsed)
-  const progress = totalDuration
-    ? (elapsedDuration / totalDuration) * 100
-    : 0
+
+  const paintProgress = useCallback((completedSeconds: number, currentSeconds: number) => {
+    const progress = totalDuration
+      ? Math.min(1, (completedSeconds + currentSeconds) / totalDuration)
+      : 0
+
+    if (progressBarRef.current) {
+      progressBarRef.current.style.transform = `scaleX(${progress})`
+    }
+  }, [totalDuration])
 
   const stopProgressTimer = useCallback(() => {
     if (animationFrameRef.current !== null) {
@@ -97,11 +106,12 @@ export function VideoPlayerCanvas({ payload, onFinished }: VideoPlayerCanvasProp
         segmentElapsedRef.current + elapsedSinceStart,
       )
       setSegmentElapsed(segmentElapsedRef.current)
+      paintProgress(completedDuration, segmentElapsedRef.current)
     }
     stopProgressTimer()
-  }, [currentSegment?.durationSeconds, stopProgressTimer])
+  }, [completedDuration, currentSegment?.durationSeconds, paintProgress, stopProgressTimer])
 
-  const startProgressTimer = useCallback((durationSeconds: number) => {
+  const startProgressTimer = useCallback((durationSeconds: number, completedSeconds: number) => {
     stopProgressTimer()
     segmentStartedAtRef.current = performance.now()
     const baseElapsed = segmentElapsedRef.current
@@ -111,7 +121,12 @@ export function VideoPlayerCanvas({ payload, onFinished }: VideoPlayerCanvasProp
 
       const elapsedSinceStart = (now - segmentStartedAtRef.current) / 1000
       const nextElapsed = Math.min(durationSeconds, baseElapsed + elapsedSinceStart)
-      setSegmentElapsed(nextElapsed)
+      paintProgress(completedSeconds, nextElapsed)
+
+      if (now - lastElapsedCommitRef.current >= 120 || nextElapsed === durationSeconds) {
+        lastElapsedCommitRef.current = now
+        setSegmentElapsed(nextElapsed)
+      }
 
       if (nextElapsed < durationSeconds) {
         animationFrameRef.current = window.requestAnimationFrame(tick)
@@ -119,7 +134,7 @@ export function VideoPlayerCanvas({ payload, onFinished }: VideoPlayerCanvasProp
     }
 
     animationFrameRef.current = window.requestAnimationFrame(tick)
-  }, [stopProgressTimer])
+  }, [paintProgress, stopProgressTimer])
 
   useEffect(() => {
     const nextImage = payload.segments[currentSegmentIndex + 1]?.imageDataUrl
@@ -146,9 +161,14 @@ export function VideoPlayerCanvas({ payload, onFinished }: VideoPlayerCanvasProp
 
     segmentIndexRef.current = index
     segmentElapsedRef.current = 0
+    lastElapsedCommitRef.current = performance.now()
     setSegmentElapsed(0)
     setCurrentSegmentIndex(index)
     isPlayingRef.current = true
+    const completedBeforeSegment = payload.segments
+      .slice(0, index)
+      .reduce((total, previousSegment) => total + previousSegment.durationSeconds, 0)
+    paintProgress(completedBeforeSegment, 0)
 
     const utterance = new SpeechSynthesisUtterance(segment.narration_text)
     const selectedVoice = narratorVoiceRef.current
@@ -165,6 +185,7 @@ export function VideoPlayerCanvas({ payload, onFinished }: VideoPlayerCanvasProp
         segmentElapsedRef.current = segment.durationSeconds
         setSegmentElapsed(segment.durationSeconds)
         stopProgressTimer()
+        paintProgress(completedBeforeSegment, segment.durationSeconds)
         speakSegment(index + 1)
       }
     }
@@ -176,9 +197,9 @@ export function VideoPlayerCanvas({ payload, onFinished }: VideoPlayerCanvasProp
     }
 
     window.speechSynthesis.speak(utterance)
-    startProgressTimer(segment.durationSeconds)
+    startProgressTimer(segment.durationSeconds, completedBeforeSegment)
     setIsPlaying(true)
-  }, [payload.segments, startProgressTimer, stopProgressTimer])
+  }, [paintProgress, payload.segments, startProgressTimer, stopProgressTimer])
 
   useEffect(() => {
     if (!('speechSynthesis' in window) || payload.segments.length === 0) {
@@ -200,7 +221,7 @@ export function VideoPlayerCanvas({ payload, onFinished }: VideoPlayerCanvasProp
     if (window.speechSynthesis.paused) {
       window.speechSynthesis.resume()
       isPlayingRef.current = true
-      startProgressTimer(currentSegment.durationSeconds)
+      startProgressTimer(currentSegment.durationSeconds, completedDuration)
       setIsPlaying(true)
     } else if (window.speechSynthesis.speaking) {
       window.speechSynthesis.pause()
@@ -213,6 +234,10 @@ export function VideoPlayerCanvas({ payload, onFinished }: VideoPlayerCanvasProp
   }
 
   if (!currentSegment) return null
+
+  const diagramItems = currentSegment.visual.type === 'diagram'
+    ? currentSegment.visual.content.split('->').map((item) => item.trim()).filter(Boolean)
+    : []
 
   return (
     <section className="lesson-page flex min-h-screen flex-col px-4 py-5 sm:px-7 sm:py-7">
@@ -228,16 +253,53 @@ export function VideoPlayerCanvas({ payload, onFinished }: VideoPlayerCanvasProp
         </div>
 
         <div className="lesson-content relative z-10 mx-3 -mt-10 flex flex-1 flex-col rounded-2xl border border-white/10 bg-[#08121d]/95 p-4 shadow-[0_24px_70px_rgba(0,0,0,0.28)] sm:mx-10 sm:p-7">
-          {currentSegment.imageDataUrl && (
+          {currentSegment.visual.type === 'code' && (
+            <div className="visual-canvas code-visual relative min-h-72 overflow-hidden rounded-xl border border-slate-500/30 p-5 sm:min-h-96 sm:p-8">
+              <div className="visual-grid" />
+              <div className="relative z-10 mx-auto max-w-3xl overflow-auto rounded-xl border border-sky-300/15 bg-slate-950/90 shadow-2xl">
+                <div className="flex items-center gap-2 border-b border-white/10 px-4 py-3">
+                  <span className="size-2 rounded-full bg-rose-400" />
+                  <span className="size-2 rounded-full bg-amber-300" />
+                  <span className="size-2 rounded-full bg-emerald-400" />
+                  <span className="ml-2 text-xs font-semibold tracking-[0.12em] text-slate-400 uppercase">{currentSegment.visual.title}</span>
+                </div>
+                <pre className="m-0 p-5 text-left text-sm leading-7 text-sky-100 sm:p-7 sm:text-base"><code>{currentSegment.visual.content}</code></pre>
+              </div>
+            </div>
+          )}
+
+          {currentSegment.visual.type === 'diagram' && (
+            <div className="visual-canvas relative flex min-h-72 items-center overflow-hidden rounded-xl border border-slate-500/30 p-5 sm:min-h-96 sm:p-8">
+              <div className="visual-grid" />
+              <div className="diagram-flow relative z-10 mx-auto flex w-full flex-wrap items-center justify-center gap-3">
+                {diagramItems.map((item, index) => (
+                  <div className="flex items-center gap-3" key={`${item}-${index}`}>
+                    {index > 0 && <span aria-hidden="true" className="text-2xl text-sky-400">→</span>}
+                    <span className="diagram-node rounded-xl px-4 py-3 text-center text-sm font-semibold text-sky-50 sm:px-5 sm:py-4">{item}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {(currentSegment.visual.type === 'image' || currentSegment.visual.type === 'analogy') && (
             <div className="visual-canvas relative flex min-h-72 flex-1 overflow-hidden rounded-xl border border-slate-500/30 sm:min-h-96">
               <div className="visual-grid" />
-              <img
-                alt={`Lesson illustration for step ${currentSegmentIndex + 1}`}
-                className="generated-visual absolute inset-0 size-full object-cover"
-                decoding="async"
-                key={currentSegment.id}
-                src={currentSegment.imageDataUrl}
-              />
+              {currentSegment.imageDataUrl ? (
+                <img
+                  alt={`Lesson illustration for step ${currentSegmentIndex + 1}`}
+                  className="generated-visual absolute inset-0 size-full object-cover"
+                  decoding="async"
+                  key={currentSegment.id}
+                  src={currentSegment.imageDataUrl}
+                />
+              ) : (
+                <div className="analogy-visual relative z-10 m-auto max-w-xl rounded-2xl px-6 py-8 text-center sm:px-10">
+                  <span className="text-4xl" aria-hidden="true">✦</span>
+                  <h2 className="mt-3 text-lg font-bold text-white">{currentSegment.visual.title}</h2>
+                  <p className="mt-3 text-sm leading-7 text-slate-200 sm:text-base">{currentSegment.visual.content}</p>
+                </div>
+              )}
               <div className="absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-[#06111c]/70 to-transparent" />
               <div className="absolute top-4 left-4 rounded-full border border-white/15 bg-slate-950/70 px-3 py-1.5 text-[0.65rem] font-bold tracking-[0.14em] text-sky-200 uppercase backdrop-blur">
                 Visual {currentSegmentIndex + 1}
@@ -255,7 +317,7 @@ export function VideoPlayerCanvas({ payload, onFinished }: VideoPlayerCanvasProp
 
         <div className="mx-3 mt-4 rounded-2xl border border-white/5 bg-[#0b131e]/90 p-4 sm:mx-10 sm:mt-5 sm:p-5">
         <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
-          <div className="h-full rounded-full bg-gradient-to-r from-blue-500 to-violet-500 transition-[width] duration-300" style={{ width: `${progress}%` }} />
+          <div className="playback-progress-indicator h-full rounded-full bg-gradient-to-r from-blue-500 to-violet-500" ref={progressBarRef} />
         </div>
         <div className="mt-4 flex items-center justify-between">
           <button aria-label={isPlaying ? 'Pause narration' : 'Play narration'} className="grid size-10 place-items-center rounded-full bg-blue-500 text-white transition hover:bg-blue-400" onClick={togglePlayback} type="button">

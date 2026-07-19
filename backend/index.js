@@ -16,7 +16,17 @@ const requestBuckets = new Map()
 
 const app = express()
 
-const instructions = "You are Logictab AI, an elite educational agent. Analyze the user's topic and output a single, minified JSON object matching the 'LogictabPayload' type. Divide the explanation into 3 distinct, chronologically sequential segments (each around 20-30 seconds of narration text when spoken). Standard should be concise and accessible, while Deep Dive should use technical terms and fuller detail."
+const instructions = "You are Logictab AI, an elite educational agent. Analyze the user's topic and output a single, minified JSON object matching the 'LogictabPayload' type. Divide the explanation into 3 distinct, chronologically sequential segments (each around 20-30 seconds of narration text when spoken). Every segment must include a visual object with type, title, and content. Standard should be concise and accessible, while Deep Dive should use technical terms and fuller detail."
+const visualSchema = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['type', 'title', 'content'],
+  properties: {
+    type: { type: 'string', enum: ['image', 'code', 'diagram', 'analogy'] },
+    title: { type: 'string' },
+    content: { type: 'string' },
+  },
+}
 const payloadSchema = {
   type: 'object',
   additionalProperties: false,
@@ -30,12 +40,13 @@ const payloadSchema = {
       items: {
         type: 'object',
         additionalProperties: false,
-        required: ['id', 'narration_text', 'visual_prompt', 'durationSeconds'],
+        required: ['id', 'narration_text', 'visual_prompt', 'durationSeconds', 'visual'],
         properties: {
           id: { type: 'integer' },
           narration_text: { type: 'string' },
           visual_prompt: { type: 'string' },
           durationSeconds: { type: 'number' },
+          visual: visualSchema,
         },
       },
     },
@@ -70,12 +81,13 @@ const generatePayloadSchema = {
       items: {
         type: 'object',
         additionalProperties: false,
-        required: ['id', 'narration_text', 'visual_prompt', 'durationSeconds'],
+        required: ['id', 'narration_text', 'visual_prompt', 'durationSeconds', 'visual'],
         properties: {
           id: { type: 'integer' },
           narration_text: { type: 'string' },
           visual_prompt: { type: 'string' },
           durationSeconds: { type: 'number' },
+          visual: visualSchema,
         },
       },
     },
@@ -99,7 +111,7 @@ Before producing the response, privately plan the best explanation for the learn
 3. Choose one focused visual concept per step that makes the narration easier to understand.
 4. Match the requested learning style: Standard is concise and passive; Deep Dive is more technical and thorough.
 
-Then generate a cohesive video script timeline. Every video step must have narration that naturally leads into the next step, plus a detailed visual_prompt for a standalone educational illustration. The visual_prompt must describe the subject, composition, important relationships, and visual style; it must not rely on labels or written text inside the image.
+Then generate a cohesive video script timeline. Every video step must have narration that naturally leads into the next step, a detailed visual_prompt for a standalone educational illustration, and one required visual object. The visual object must contain type, title, and content. Use type "image" for a generated illustration, "code" for a short clean code sample, "diagram" for a simple flow written as 3-5 concepts separated by " -> ", or "analogy" for a memorable concrete comparison. For code, content must be code only with no Markdown fences. For diagram, content must use the arrow format. For analogy, content must be a short, vivid analogy. For programming or coding questions, at least one step MUST use type "code" and include a relevant code example. The visual_prompt must describe the subject, composition, important relationships, and visual style; it must not rely on labels or written text inside the image.
 
 For Deep Dive lessons, also create a knowledge-check quiz that tests only facts taught in the narration. For Standard lessons, return an empty quiz array.
 
@@ -143,6 +155,10 @@ const generateSegmentVisuals = async (modelType, activeKey, videoSteps) => {
   }
 
   const generateOne = async (step) => {
+    if (step.visual?.type === 'code' || step.visual?.type === 'diagram') {
+      return step
+    }
+
     try {
       if (modelType === 'openai') {
         const client = new OpenAI({ apiKey: activeKey })

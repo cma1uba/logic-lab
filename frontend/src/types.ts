@@ -6,6 +6,11 @@ export interface LogictabPayload {
     visual_prompt: string; // Describing the illustration context for the canvas background
     durationSeconds: number; // Approximate reading pacing duration
     imageDataUrl?: string; // Provider-generated visual for the player canvas
+    visual: {
+      type: 'image' | 'code' | 'diagram' | 'analogy';
+      title: string;
+      content: string;
+    };
   }[];
   quiz: {
     question: string;
