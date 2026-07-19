@@ -289,7 +289,7 @@ export function VideoPlayerCanvas({ payload, onFinished }: VideoPlayerCanvasProp
     </div>
   )
   const visualSubtitle = (
-    <div className="visual-subtitle absolute right-4 bottom-4 left-4 rounded-xl px-4 py-3 text-left text-sm leading-6 sm:right-8 sm:bottom-6 sm:left-8 sm:px-6 sm:py-4 sm:text-base sm:leading-7">
+    <div className="visual-subtitle mt-4 rounded-xl px-4 py-3 text-left text-sm leading-6 sm:px-6 sm:py-4 sm:text-base sm:leading-7">
       {captionContent}
     </div>
   )
@@ -323,7 +323,6 @@ export function VideoPlayerCanvas({ payload, onFinished }: VideoPlayerCanvasProp
                 </div>
                 <pre className="m-0 p-5 text-left text-sm leading-7 text-sky-100 sm:p-7 sm:text-base"><code>{currentSegment.visual.content}</code></pre>
               </div>
-              {visualSubtitle}
             </div>
           )}
 
@@ -338,7 +337,6 @@ export function VideoPlayerCanvas({ payload, onFinished }: VideoPlayerCanvasProp
                   </div>
                 ))}
               </div>
-              {visualSubtitle}
             </div>
           )}
 
@@ -356,9 +354,10 @@ export function VideoPlayerCanvas({ payload, onFinished }: VideoPlayerCanvasProp
               <div className="absolute top-4 left-4 rounded-full border border-white/15 bg-slate-950/70 px-3 py-1.5 text-[0.65rem] font-bold tracking-[0.14em] text-sky-200 uppercase backdrop-blur">
                 Visual {currentSegmentIndex + 1}
               </div>
-              {visualSubtitle}
             </div>
           )}
+
+          {hasRenderableVisual && visualSubtitle}
 
           {!hasRenderableVisual && (
             <div className="lesson-narration mx-auto flex w-full max-w-3xl items-center rounded-2xl px-5 py-6 sm:px-8 sm:py-8">
