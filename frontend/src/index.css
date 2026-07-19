@@ -1,0 +1,257 @@
+@import "tailwindcss";
+
+@theme {
+  --color-logictab-bg: #0b131e;
+  --color-logictab-surface: #111c2a;
+  --color-logictab-blue: #3b82f6;
+  --color-logictab-purple: #8b5cf6;
+}
+
+:root {
+  color-scheme: dark;
+  --color-background: #0b131e;
+  --color-surface: #111c2a;
+  --color-text-primary: #f1f5f9;
+  --color-text-secondary: #cbd5e1;
+  --color-blue: #3b82f6;
+  --color-purple: #8b5cf6;
+  --gradient-highlight: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  --border-card: rgba(255, 255, 255, 0.05);
+}
+
+.app-shell {
+  background:
+    radial-gradient(circle at 50% -20%, rgba(33, 113, 179, 0.2), transparent 38rem),
+    radial-gradient(circle at 5% 90%, rgba(71, 85, 105, 0.12), transparent 32rem),
+    #0b131e;
+}
+
+.app-shell::before {
+  position: fixed;
+  z-index: 0;
+  inset: 0;
+  pointer-events: none;
+  content: '';
+  opacity: 0.32;
+  background-image: radial-gradient(rgba(148, 163, 184, 0.23) 0.7px, transparent 0.7px);
+  background-size: 7px 7px;
+  mask-image: linear-gradient(to bottom, black, transparent 72%);
+}
+
+.app-shell > * {
+  position: relative;
+  z-index: 1;
+}
+
+.eyebrow {
+  color: #7dd3fc;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.idle-title {
+  font-size: clamp(3.25rem, 11vw, 5.8rem);
+  font-weight: 800;
+  letter-spacing: -0.06em;
+  line-height: 0.94;
+}
+
+.idle-subtitle {
+  font-size: clamp(1rem, 2vw, 1.25rem);
+  line-height: 1.65;
+}
+
+.provider-panel {
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: linear-gradient(145deg, rgba(17, 31, 46, 0.7), rgba(9, 19, 30, 0.72));
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.045), 0 18px 40px rgba(0, 0, 0, 0.12);
+  backdrop-filter: blur(16px);
+}
+
+.provider-tabs {
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(4, 12, 21, 0.58);
+}
+
+.provider-tab { color: #94a3b8; }
+.provider-tab:hover { color: #dbeafe; background: rgba(255, 255, 255, 0.04); }
+.provider-tab-active {
+  color: #eff6ff;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.82), rgba(109, 40, 217, 0.64));
+  box-shadow: 0 5px 16px rgba(30, 64, 175, 0.24), inset 0 1px rgba(255, 255, 255, 0.16);
+}
+
+.provider-key-field {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(3, 12, 21, 0.48);
+  transition: border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
+}
+
+.provider-key-field:hover,
+.provider-key-field:focus-within {
+  border-color: rgba(125, 211, 252, 0.38);
+  background: rgba(8, 22, 35, 0.72);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.07);
+}
+
+.prompt-composer {
+  border: 1px solid rgba(125, 211, 252, 0.26);
+  background: linear-gradient(145deg, rgba(8, 21, 33, 0.94), rgba(7, 17, 27, 0.9));
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28), inset 0 1px rgba(255, 255, 255, 0.04);
+  transition: border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.prompt-composer:focus-within {
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1), 0 24px 70px rgba(0, 0, 0, 0.35);
+}
+
+.suggestion-chip {
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  background: rgba(30, 41, 59, 0.45);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.025);
+}
+
+.suggestion-chip:hover {
+  border-color: rgba(96, 165, 250, 0.55);
+  background: rgba(30, 58, 138, 0.26);
+  color: #dbeafe;
+  transform: translateY(-1px);
+}
+
+.lesson-frame {
+  border: 1px solid rgba(125, 211, 252, 0.2);
+  background: #111a20;
+  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.35);
+}
+
+.lesson-hero {
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(6, 105, 120, 0.72), rgba(9, 64, 83, 0.88)),
+    linear-gradient(100deg, #092639, #064558 50%, #123341);
+}
+
+.lesson-hero::after {
+  position: absolute;
+  right: -10%;
+  bottom: -55%;
+  left: -10%;
+  height: 95%;
+  content: '';
+  opacity: 0.55;
+  background: repeating-radial-gradient(ellipse at 50% 100%, transparent 0 3.2rem, rgba(4, 32, 48, 0.8) 3.3rem 5rem);
+}
+
+.lesson-hero-orb {
+  position: absolute;
+  width: 18rem;
+  height: 18rem;
+  border-radius: 999px;
+  filter: blur(45px);
+  opacity: 0.22;
+}
+
+.lesson-hero-orb-left { top: -8rem; left: -4rem; background: #22d3ee; }
+.lesson-hero-orb-right { right: -6rem; bottom: -7rem; background: #2563eb; }
+
+.visual-canvas {
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 22% 26%, rgba(14, 165, 233, 0.13), transparent 23rem),
+    linear-gradient(135deg, rgba(6, 17, 28, 0.98), rgba(10, 22, 34, 0.95));
+}
+
+.visual-grid {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  opacity: 0.36;
+  background-image: linear-gradient(rgba(125, 211, 252, 0.09) 1px, transparent 1px), linear-gradient(90deg, rgba(125, 211, 252, 0.09) 1px, transparent 1px);
+  background-size: 32px 32px;
+  mask-image: radial-gradient(ellipse at center, black, transparent 78%);
+}
+
+.concept-card {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  min-height: 8.5rem;
+  flex-direction: column;
+  justify-content: center;
+  border: 1px solid rgba(125, 211, 252, 0.24);
+  background: linear-gradient(145deg, rgba(22, 42, 59, 0.94), rgba(11, 25, 38, 0.95));
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.06), 0 14px 32px rgba(0, 0, 0, 0.2);
+}
+
+.concept-card-primary {
+  width: min(42%, 14rem);
+  padding: 1.25rem;
+}
+
+.concept-card-primary strong { margin-top: 0.35rem; color: #dbeafe; font-size: 2.25rem; }
+.concept-card-primary > span:last-child { margin-top: 0.3rem; color: #7dd3fc; font-size: 0.8rem; }
+
+.concept-card-secondary {
+  width: min(48%, 20rem);
+  margin-top: 4rem;
+  margin-left: auto;
+  padding: 1.25rem;
+}
+
+.concept-card-secondary p { margin-top: 0.55rem; color: #cbd5e1; font-size: 0.9rem; line-height: 1.55; }
+.concept-label { color: #93c5fd; font-size: 0.66rem; font-weight: 700; letter-spacing: 0.13em; text-transform: uppercase; }
+
+.concept-connector {
+  position: absolute;
+  top: 46%;
+  left: 37%;
+  width: 30%;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(125, 211, 252, 0.15), #38bdf8, rgba(125, 211, 252, 0.15));
+}
+
+.concept-connector::after {
+  position: absolute;
+  top: -3px;
+  right: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  content: '';
+  background: #38bdf8;
+  box-shadow: 0 0 14px #38bdf8;
+}
+
+.visual-caption {
+  border: 1px solid rgba(125, 211, 252, 0.1);
+  background: rgba(5, 15, 24, 0.78);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+}
+
+@media (max-width: 520px) {
+  .lesson-hero { padding-bottom: 4.5rem; }
+  .concept-card-primary { width: 58%; }
+  .concept-card-secondary { width: 67%; margin-top: 3rem; }
+  .concept-connector { top: 43%; left: 47%; width: 26%; }
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-background);
+  color: var(--color-text-primary);
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+.card,
+[data-card] {
+  background: var(--color-surface);
+  border: 1px solid var(--border-card);
+}

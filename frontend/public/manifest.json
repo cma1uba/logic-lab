@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "Logictab",
+  "version": "1.0.0",
+  "description": "A logic workspace in the Chrome Side Panel.",
+  "permissions": ["sidePanel", "activeTab"],
+  "host_permissions": [
+    "https://logictab-2.onrender.com/*",
+    "http://localhost/*"
+  ],
+  "action": {
+    "default_title": "Open Logictab"
+  },
+  "side_panel": {
+    "default_path": "index.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  }
+}

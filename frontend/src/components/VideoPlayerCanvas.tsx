@@ -1,0 +1,154 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { LogictabPayload } from '../types'
+
+interface VideoPlayerCanvasProps {
+  payload: LogictabPayload
+  onFinished: () => void
+}
+
+const formatTime = (seconds: number) => {
+  const minutes = Math.floor(seconds / 60)
+  const remainingSeconds = Math.floor(seconds % 60)
+  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`
+}
+
+export function VideoPlayerCanvas({ payload, onFinished }: VideoPlayerCanvasProps) {
+  const [currentSegmentIndex, setCurrentSegmentIndex] = useState(0)
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [spokenText, setSpokenText] = useState('')
+  const segmentIndexRef = useRef(0)
+  const finishedRef = useRef(false)
+  const onFinishedRef = useRef(onFinished)
+
+  useEffect(() => {
+    onFinishedRef.current = onFinished
+  }, [onFinished])
+
+  const totalDuration = useMemo(
+    () => payload.segments.reduce((total, segment) => total + segment.durationSeconds, 0),
+    [payload.segments],
+  )
+  const elapsedDuration = useMemo(
+    () => payload.segments
+      .slice(0, currentSegmentIndex)
+      .reduce((total, segment) => total + segment.durationSeconds, 0),
+    [currentSegmentIndex, payload.segments],
+  )
+  const currentSegment = payload.segments[currentSegmentIndex]
+  const progress = payload.segments.length
+    ? ((currentSegmentIndex + Number(isPlaying)) / payload.segments.length) * 100
+    : 0
+
+  const speakSegment = useCallback((index: number) => {
+    const segment = payload.segments[index]
+
+    if (!segment) {
+      if (!finishedRef.current) {
+        finishedRef.current = true
+        setIsPlaying(false)
+        onFinishedRef.current()
+      }
+      return
+    }
+
+    segmentIndexRef.current = index
+    setCurrentSegmentIndex(index)
+    setSpokenText('')
+
+    const utterance = new SpeechSynthesisUtterance(segment.narration_text)
+    utterance.onboundary = (event) => {
+      if (event.name !== 'word') return
+
+      const nextSpace = segment.narration_text.indexOf(' ', event.charIndex)
+      setSpokenText(segment.narration_text.slice(0, nextSpace === -1 ? undefined : nextSpace))
+    }
+    utterance.onend = () => {
+      if (segmentIndexRef.current === index && !finishedRef.current) {
+        speakSegment(index + 1)
+      }
+    }
+    utterance.onerror = (event) => {
+      if (event.error !== 'canceled' && !finishedRef.current) {
+        speakSegment(index + 1)
+      }
+    }
+
+    window.speechSynthesis.speak(utterance)
+    setIsPlaying(true)
+  }, [payload.segments])
+
+  useEffect(() => {
+    if (!('speechSynthesis' in window) || payload.segments.length === 0) {
+      onFinishedRef.current()
+      return undefined
+    }
+
+    finishedRef.current = false
+    speakSegment(0)
+
+    return () => {
+      window.speechSynthesis.cancel()
+    }
+  }, [payload.segments, speakSegment])
+
+  const togglePlayback = () => {
+    if (window.speechSynthesis.paused) {
+      window.speechSynthesis.resume()
+      setIsPlaying(true)
+    } else if (window.speechSynthesis.speaking) {
+      window.speechSynthesis.pause()
+      setIsPlaying(false)
+    } else if (!finishedRef.current) {
+      speakSegment(segmentIndexRef.current)
+    }
+  }
+
+  if (!currentSegment) return null
+
+  return (
+    <section className="lesson-page flex min-h-screen flex-col px-4 py-5 sm:px-7 sm:py-7">
+      <div className="lesson-frame mx-auto flex w-full max-w-6xl flex-1 flex-col overflow-hidden rounded-2xl">
+        <div className="lesson-hero relative px-6 pt-7 pb-20 sm:px-10 sm:pt-10">
+          <div className="lesson-hero-orb lesson-hero-orb-left" />
+          <div className="lesson-hero-orb lesson-hero-orb-right" />
+          <div className="relative flex items-center justify-between text-xs font-semibold tracking-[0.16em] text-cyan-100/80 uppercase">
+            <span>Logictab lesson</span>
+            <span>Slide {currentSegmentIndex + 1} / {payload.segments.length}</span>
+          </div>
+          <h1 className="relative mt-8 max-w-3xl text-3xl font-bold tracking-tight text-white sm:text-5xl">{payload.topic}</h1>
+        </div>
+
+        <div className="lesson-content relative z-10 mx-3 -mt-10 flex flex-1 flex-col rounded-2xl border border-white/10 bg-[#08121d]/95 p-4 shadow-[0_24px_70px_rgba(0,0,0,0.28)] sm:mx-10 sm:p-7">
+          <div className="visual-canvas relative flex min-h-72 flex-1 overflow-hidden rounded-xl border border-slate-500/30 p-5 sm:min-h-96 sm:p-8">
+            <div className="visual-grid" />
+            <div className="concept-card concept-card-primary">
+              <span className="concept-label">Current concept</span>
+              <strong>{String(currentSegment.id).padStart(2, '0')}</strong>
+              <span>Explore</span>
+            </div>
+            <div className="concept-connector" />
+            <div className="concept-card concept-card-secondary">
+              <span className="concept-label">Visual prompt</span>
+              <p>{currentSegment.visual_prompt}</p>
+            </div>
+            <div className="visual-caption absolute right-4 bottom-4 left-4 rounded-xl px-4 py-3 text-sm leading-relaxed text-slate-200 backdrop-blur sm:right-auto sm:max-w-md">
+              {spokenText || currentSegment.narration_text}
+            </div>
+          </div>
+        </div>
+
+        <div className="mx-3 mt-4 rounded-2xl border border-white/5 bg-[#0b131e]/90 p-4 sm:mx-10 sm:mt-5 sm:p-5">
+        <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
+          <div className="h-full rounded-full bg-gradient-to-r from-blue-500 to-violet-500 transition-[width] duration-300" style={{ width: `${progress}%` }} />
+        </div>
+        <div className="mt-4 flex items-center justify-between">
+          <button aria-label={isPlaying ? 'Pause narration' : 'Play narration'} className="grid size-10 place-items-center rounded-full bg-blue-500 text-white transition hover:bg-blue-400" onClick={togglePlayback} type="button">
+            {isPlaying ? 'Ⅱ' : '▶'}
+          </button>
+          <span className="font-mono text-sm text-slate-300">{formatTime(elapsedDuration)} / {formatTime(totalDuration)}</span>
+        </div>
+        </div>
+      </div>
+    </section>
+  )
+}

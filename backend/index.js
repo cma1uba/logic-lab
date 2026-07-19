@@ -1,0 +1,269 @@
+import Anthropic from '@anthropic-ai/sdk'
+import { GoogleGenAI } from '@google/genai'
+import cors from 'cors'
+import express from 'express'
+import OpenAI from 'openai'
+
+const port = process.env.PORT || 5000
+const openAiApiKey = process.env.OPENAI_API_KEY
+const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? 'http://localhost:5173')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean)
+const rateLimitWindowMs = Number(process.env.RATE_LIMIT_WINDOW_MS ?? 60_000)
+const rateLimitMaxRequests = Number(process.env.RATE_LIMIT_MAX_REQUESTS ?? 20)
+const requestBuckets = new Map()
+
+const app = express()
+
+const instructions = "You are Logictab AI, an elite educational agent. Analyze the user's topic and output a single, minified JSON object matching the 'LogictabPayload' type. Divide the explanation into 3 distinct, chronologically sequential segments (each around 20-30 seconds of narration text when spoken). Follow the provided user tone (e.g., ELI5 should use simple analogies, Deep Dive should use technical terms). Also generate 3 highly relevant multiple-choice quiz questions based strictly on the facts in your narration text, including an explanation of why the correct answer is right."
+const payloadSchema = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['topic', 'segments', 'quiz'],
+  properties: {
+    topic: { type: 'string' },
+    segments: {
+      type: 'array',
+      minItems: 3,
+      maxItems: 3,
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['id', 'narration_text', 'visual_prompt', 'durationSeconds'],
+        properties: {
+          id: { type: 'integer' },
+          narration_text: { type: 'string' },
+          visual_prompt: { type: 'string' },
+          durationSeconds: { type: 'number' },
+        },
+      },
+    },
+    quiz: {
+      type: 'array',
+      minItems: 3,
+      maxItems: 3,
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['question', 'options', 'correct_answer', 'explanation'],
+        properties: {
+          question: { type: 'string' },
+          options: { type: 'array', items: { type: 'string' } },
+          correct_answer: { type: 'string' },
+          explanation: { type: 'string' },
+        },
+      },
+    },
+  },
+}
+
+const generatePayloadSchema = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['video_steps', 'quiz'],
+  properties: {
+    video_steps: {
+      type: 'array',
+      minItems: 3,
+      maxItems: 3,
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['id', 'narration_text', 'visual_prompt', 'durationSeconds'],
+        properties: {
+          id: { type: 'integer' },
+          narration_text: { type: 'string' },
+          visual_prompt: { type: 'string' },
+          durationSeconds: { type: 'number' },
+        },
+      },
+    },
+    quiz: payloadSchema.properties.quiz,
+  },
+}
+
+const generateInstructions = 'You are an AI teaching assistant. Generate a video script timeline and a quiz based on the user topic. Respond ONLY with a valid JSON object fitting the LogictabPayload schema: { video_steps: [...], quiz: [...] }.'
+const supportedModelTypes = new Set(['openai', 'claude', 'gemini'])
+
+const getTextBlock = (content) => content.find((block) => block.type === 'text')?.text
+
+const parseGeneratedPayload = (content) => {
+  if (typeof content !== 'string' || !content.trim()) {
+    throw new Error('The model returned an empty response.')
+  }
+
+  const json = content.trim().replace(/^```json\s*|\s*```$/g, '')
+  const payload = JSON.parse(json)
+
+  if (!payload || typeof payload !== 'object'
+    || !Array.isArray(payload.video_steps)
+    || !Array.isArray(payload.quiz)) {
+    throw new Error('The model returned an invalid lesson payload.')
+  }
+
+  return payload
+}
+
+const enforceRateLimit = (req, res, next) => {
+  const now = Date.now()
+  const key = req.ip
+  const bucket = requestBuckets.get(key)
+
+  if (!bucket || now - bucket.startedAt >= rateLimitWindowMs) {
+    requestBuckets.set(key, { startedAt: now, count: 1 })
+    next()
+    return
+  }
+
+  if (bucket.count >= rateLimitMaxRequests) {
+    res.status(429).json({ error: 'Too many requests. Please try again in a minute.' })
+    return
+  }
+
+  bucket.count += 1
+  next()
+}
+
+app.use(cors({
+  methods: ['POST'],
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin) || origin.startsWith('chrome-extension://')) {
+      callback(null, true)
+      return
+    }
+
+    callback(new Error('Origin is not allowed by CORS.'))
+  },
+}))
+app.use(express.json({ limit: '32kb' }))
+app.use(enforceRateLimit)
+
+app.post('/api/generate', async (req, res) => {
+  const { prompt, tone, modelType, apiKey } = req.body ?? {}
+
+  if (typeof prompt !== 'string' || !prompt.trim() || typeof tone !== 'string' || !tone.trim()) {
+    return res.status(400).json({ error: 'Both prompt and tone are required.' })
+  }
+
+  if (typeof modelType !== 'string' || !supportedModelTypes.has(modelType)) {
+    return res.status(400).json({ error: 'modelType must be one of: openai, claude, or gemini.' })
+  }
+
+  if (apiKey !== undefined && typeof apiKey !== 'string') {
+    return res.status(400).json({ error: 'apiKey must be a non-empty string when provided.' })
+  }
+
+  const environmentKey = {
+    openai: process.env.OPENAI_API_KEY,
+    claude: process.env.ANTHROPIC_API_KEY,
+    gemini: process.env.GEMINI_API_KEY,
+  }[modelType]
+  const activeKey = typeof apiKey === 'string' && apiKey.trim() ? apiKey.trim() : environmentKey
+
+  if (!activeKey) {
+    return res.status(400).json({ error: `An API key is required for ${modelType}.` })
+  }
+
+  const userInput = `Topic: ${prompt.trim()}\nTone: ${tone.trim()}`
+
+  try {
+    let generatedText
+
+    switch (modelType) {
+      case 'openai': {
+        const client = new OpenAI({ apiKey: activeKey })
+        const response = await client.chat.completions.create({
+          model: 'gpt-4o-mini',
+          response_format: { type: 'json_object' },
+          messages: [
+            { role: 'system', content: generateInstructions },
+            { role: 'user', content: userInput },
+          ],
+        })
+        generatedText = response.choices[0]?.message?.content
+        break
+      }
+
+      case 'claude': {
+        const client = new Anthropic({ apiKey: activeKey })
+        const response = await client.messages.create({
+          model: 'claude-3-5-sonnet-20240620',
+          max_tokens: 2_400,
+          system: generateInstructions,
+          messages: [{ role: 'user', content: userInput }],
+        })
+        generatedText = getTextBlock(response.content)
+        break
+      }
+
+      case 'gemini': {
+        const client = new GoogleGenAI({ apiKey: activeKey })
+        const response = await client.models.generateContent({
+          model: 'gemini-1.5-flash',
+          contents: userInput,
+          config: {
+            systemInstruction: generateInstructions,
+            responseMimeType: 'application/json',
+            responseSchema: generatePayloadSchema,
+          },
+        })
+        generatedText = response.text
+        break
+      }
+    }
+
+    return res.json(parseGeneratedPayload(generatedText))
+  } catch (error) {
+    console.error(`Logictab ${modelType} generation failed:`, error)
+    return res.status(502).json({ error: 'The selected AI provider could not generate a lesson.' })
+  }
+})
+
+app.post('/api/explain', async (req, res) => {
+  const { query, tone } = req.body ?? {}
+
+  if (typeof query !== 'string' || !query.trim() || typeof tone !== 'string' || !tone.trim()) {
+    return res.status(400).json({ error: 'Both query and tone are required.' })
+  }
+
+  if (!openAiApiKey) {
+    return res.status(400).json({ error: 'OPENAI_API_KEY is not configured on this server.' })
+  }
+
+  try {
+    const client = new OpenAI({ apiKey: openAiApiKey })
+    const response = await client.responses.create({
+      model: 'gpt-5.6',
+      reasoning: { effort: 'medium' },
+      text: {
+        format: {
+          type: 'json_schema',
+          name: 'logictab_payload',
+          strict: true,
+          schema: payloadSchema,
+        },
+      },
+      instructions,
+      input: `Topic: ${query.trim()}\nTone: ${tone.trim()}`,
+    })
+
+    return res.json({ outputText: response.output_text })
+  } catch (error) {
+    console.error('Logictab generation failed:', error)
+    return res.status(500).json({ error: 'Unable to generate a lesson right now.' })
+  }
+})
+
+app.use((error, _req, res, next) => {
+  if (error.message === 'Origin is not allowed by CORS.') {
+    res.status(403).json({ error: error.message })
+    return
+  }
+
+  next(error)
+})
+
+app.listen(port, () => {
+  console.log(`Logictab API server listening on port ${port}`)
+})
