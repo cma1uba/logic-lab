@@ -27,6 +27,7 @@ const isLogictabPayload = (value: unknown): value is LogictabPayload => {
     && ['image', 'code', 'diagram', 'analogy'].includes(segment.visual.type as string)
     && typeof segment.visual.title === 'string'
     && typeof segment.visual.content === 'string'
+    && ['left', 'center', 'right'].includes(segment.visual.focusPosition as string)
   )) && value.quiz.every((question) => (
     isRecord(question)
     && typeof question.question === 'string'

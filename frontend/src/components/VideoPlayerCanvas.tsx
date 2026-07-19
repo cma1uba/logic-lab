@@ -34,6 +34,7 @@ export function VideoPlayerCanvas({ payload, onFinished }: VideoPlayerCanvasProp
   const [currentSegmentIndex, setCurrentSegmentIndex] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
   const [segmentElapsed, setSegmentElapsed] = useState(0)
+  const [subtitleCharacterIndex, setSubtitleCharacterIndex] = useState(0)
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([])
   const segmentIndexRef = useRef(0)
   const segmentElapsedRef = useRef(0)
@@ -163,6 +164,7 @@ export function VideoPlayerCanvas({ payload, onFinished }: VideoPlayerCanvasProp
     segmentElapsedRef.current = 0
     lastElapsedCommitRef.current = performance.now()
     setSegmentElapsed(0)
+    setSubtitleCharacterIndex(0)
     setCurrentSegmentIndex(index)
     isPlayingRef.current = true
     const completedBeforeSegment = payload.segments
@@ -180,10 +182,20 @@ export function VideoPlayerCanvas({ payload, onFinished }: VideoPlayerCanvasProp
     if (selectedVoice) {
       utterance.voice = selectedVoice
     }
+    utterance.onboundary = (event) => {
+      if (event.name !== 'word') return
+
+      const fallbackWordEnd = segment.narration_text.indexOf(' ', event.charIndex)
+      const wordEnd = event.charLength > 0
+        ? event.charIndex + event.charLength
+        : fallbackWordEnd === -1 ? segment.narration_text.length : fallbackWordEnd
+      setSubtitleCharacterIndex(Math.min(segment.narration_text.length, wordEnd))
+    }
     utterance.onend = () => {
       if (segmentIndexRef.current === index && !finishedRef.current) {
         segmentElapsedRef.current = segment.durationSeconds
         setSegmentElapsed(segment.durationSeconds)
+        setSubtitleCharacterIndex(segment.narration_text.length)
         stopProgressTimer()
         paintProgress(completedBeforeSegment, segment.durationSeconds)
         speakSegment(index + 1)
@@ -238,6 +250,20 @@ export function VideoPlayerCanvas({ payload, onFinished }: VideoPlayerCanvasProp
   const diagramItems = currentSegment.visual.type === 'diagram'
     ? currentSegment.visual.content.split('->').map((item) => item.trim()).filter(Boolean)
     : []
+  const subtitleIndex = Math.min(subtitleCharacterIndex, currentSegment.narration_text.length)
+  const spokenSubtitle = currentSegment.narration_text.slice(0, subtitleIndex)
+  const upcomingSubtitle = currentSegment.narration_text.slice(subtitleIndex)
+  const visualSubtitle = (
+    <>
+      <div aria-hidden="true" className={`narration-pointer narration-pointer-${currentSegment.visual.focusPosition}`}>
+        <span className="narration-pointer-dot" />
+        <span className="narration-pointer-line" />
+      </div>
+      <div aria-live="polite" className="visual-subtitle absolute right-4 bottom-4 left-4 rounded-xl px-4 py-3 text-center text-sm leading-6 sm:right-8 sm:bottom-6 sm:left-8 sm:px-6 sm:py-4 sm:text-base sm:leading-7">
+        <span className="text-white">{spokenSubtitle}</span><span className="text-slate-400">{upcomingSubtitle}</span>
+      </div>
+    </>
+  )
 
   return (
     <section className="lesson-page flex min-h-screen flex-col px-4 py-5 sm:px-7 sm:py-7">
@@ -265,6 +291,7 @@ export function VideoPlayerCanvas({ payload, onFinished }: VideoPlayerCanvasProp
                 </div>
                 <pre className="m-0 p-5 text-left text-sm leading-7 text-sky-100 sm:p-7 sm:text-base"><code>{currentSegment.visual.content}</code></pre>
               </div>
+              {visualSubtitle}
             </div>
           )}
 
@@ -279,6 +306,7 @@ export function VideoPlayerCanvas({ payload, onFinished }: VideoPlayerCanvasProp
                   </div>
                 ))}
               </div>
+              {visualSubtitle}
             </div>
           )}
 
@@ -304,15 +332,15 @@ export function VideoPlayerCanvas({ payload, onFinished }: VideoPlayerCanvasProp
               <div className="absolute top-4 left-4 rounded-full border border-white/15 bg-slate-950/70 px-3 py-1.5 text-[0.65rem] font-bold tracking-[0.14em] text-sky-200 uppercase backdrop-blur">
                 Visual {currentSegmentIndex + 1}
               </div>
+              {visualSubtitle}
             </div>
           )}
 
-          <div aria-live="polite" className="lesson-caption mt-4 rounded-xl px-5 py-4 text-center text-sm leading-7 text-white sm:px-7 sm:py-5 sm:text-base">
-            <span className="mb-1 block text-[0.65rem] font-bold tracking-[0.16em] text-sky-300 uppercase">
-              Now explaining
-            </span>
-            <p>{currentSegment.narration_text}</p>
-          </div>
+          {!currentSegment.visual && (
+            <div aria-live="polite" className="lesson-caption mt-4 rounded-xl px-5 py-4 text-center text-sm leading-7 text-white sm:px-7 sm:py-5 sm:text-base">
+              <p>{currentSegment.narration_text}</p>
+            </div>
+          )}
         </div>
 
         <div className="mx-3 mt-4 rounded-2xl border border-white/5 bg-[#0b131e]/90 p-4 sm:mx-10 sm:mt-5 sm:p-5">
