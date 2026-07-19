@@ -182,6 +182,10 @@ export function VideoPlayerCanvas({ payload, onFinished }: VideoPlayerCanvasProp
     if (selectedVoice) {
       utterance.voice = selectedVoice
     }
+    utterance.onstart = () => {
+      const firstWordEnd = segment.narration_text.indexOf(' ')
+      setSubtitleCharacterIndex(firstWordEnd === -1 ? segment.narration_text.length : firstWordEnd)
+    }
     utterance.onboundary = (event) => {
       if (event.name !== 'word') return
 
@@ -251,8 +255,13 @@ export function VideoPlayerCanvas({ payload, onFinished }: VideoPlayerCanvasProp
     ? currentSegment.visual.content.split('->').map((item) => item.trim()).filter(Boolean)
     : []
   const subtitleIndex = Math.min(subtitleCharacterIndex, currentSegment.narration_text.length)
-  const spokenSubtitle = currentSegment.narration_text.slice(0, subtitleIndex)
-  const upcomingSubtitle = currentSegment.narration_text.slice(subtitleIndex)
+  const spokenWords = currentSegment.narration_text
+    .slice(0, subtitleIndex)
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+  const subtitleStartIndex = Math.max(0, spokenWords.length - 6)
+  const visibleSubtitleWords = spokenWords.slice(subtitleStartIndex)
   const visualSubtitle = (
     <>
       <div aria-hidden="true" className={`narration-pointer narration-pointer-${currentSegment.visual.focusPosition}`}>
@@ -260,7 +269,13 @@ export function VideoPlayerCanvas({ payload, onFinished }: VideoPlayerCanvasProp
         <span className="narration-pointer-line" />
       </div>
       <div aria-live="polite" className="visual-subtitle absolute right-4 bottom-4 left-4 rounded-xl px-4 py-3 text-center text-sm leading-6 sm:right-8 sm:bottom-6 sm:left-8 sm:px-6 sm:py-4 sm:text-base sm:leading-7">
-        <span className="text-white">{spokenSubtitle}</span><span className="text-slate-400">{upcomingSubtitle}</span>
+        <p className="m-0">
+          {visibleSubtitleWords.map((word, index) => (
+            <span className="subtitle-word" key={`${currentSegment.id}-${subtitleStartIndex + index}`}>
+              {word}{' '}
+            </span>
+          ))}
+        </p>
       </div>
     </>
   )
