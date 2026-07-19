@@ -263,21 +263,15 @@ export function VideoPlayerCanvas({ payload, onFinished }: VideoPlayerCanvasProp
   const subtitleStartIndex = Math.max(0, spokenWords.length - 6)
   const visibleSubtitleWords = spokenWords.slice(subtitleStartIndex)
   const visualSubtitle = (
-    <>
-      <div aria-hidden="true" className={`narration-pointer narration-pointer-${currentSegment.visual.focusPosition}`}>
-        <span className="narration-pointer-dot" />
-        <span className="narration-pointer-line" />
-      </div>
-      <div aria-live="polite" className="visual-subtitle absolute right-4 bottom-4 left-4 rounded-xl px-4 py-3 text-center text-sm leading-6 sm:right-8 sm:bottom-6 sm:left-8 sm:px-6 sm:py-4 sm:text-base sm:leading-7">
-        <p className="m-0">
-          {visibleSubtitleWords.map((word, index) => (
-            <span className="subtitle-word" key={`${currentSegment.id}-${subtitleStartIndex + index}`}>
-              {word}{' '}
-            </span>
-          ))}
-        </p>
-      </div>
-    </>
+    <div aria-live="polite" className="visual-subtitle absolute right-4 bottom-4 left-4 rounded-xl px-4 py-3 text-center text-sm leading-6 sm:right-8 sm:bottom-6 sm:left-8 sm:px-6 sm:py-4 sm:text-base sm:leading-7">
+      <p className="m-0">
+        {visibleSubtitleWords.map((word, index) => (
+          <span className="subtitle-word" key={`${currentSegment.id}-${subtitleStartIndex + index}`}>
+            {word}{' '}
+          </span>
+        ))}
+      </p>
+    </div>
   )
 
   return (
@@ -358,7 +352,7 @@ export function VideoPlayerCanvas({ payload, onFinished }: VideoPlayerCanvasProp
           )}
         </div>
 
-        <div className="mx-3 mt-4 rounded-2xl border border-white/5 bg-[#0b131e]/90 p-4 sm:mx-10 sm:mt-5 sm:p-5">
+        <div className="player-controls mx-3 mt-4 rounded-2xl p-4 sm:mx-10 sm:mt-5 sm:p-5">
         <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
           <div className="playback-progress-indicator h-full rounded-full bg-gradient-to-r from-blue-500 to-violet-500" ref={progressBarRef} />
         </div>

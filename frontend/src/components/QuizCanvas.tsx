@@ -43,14 +43,14 @@ export function QuizCanvas({ questions, onComplete }: QuizCanvasProps) {
   const isLastQuestion = currentQuestionIndex === questions.length - 1
 
   return (
-    <section className="flex min-h-screen flex-col justify-center p-5">
+    <section className="assessment-page flex min-h-screen flex-col justify-center p-5">
       <div className="mx-auto w-full max-w-xl">
         <div className="mb-4 flex items-center justify-between text-xs font-semibold tracking-[0.18em] text-blue-400 uppercase">
           <span>Knowledge check</span>
           <span>{currentQuestionIndex + 1} / {questions.length}</span>
         </div>
 
-        <article className="rounded-2xl border border-white/5 bg-[#111c2a] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.25)]">
+        <article className="assessment-card rounded-2xl p-5 sm:p-7">
           <h1 className="text-xl leading-snug font-semibold text-slate-100">
             {currentQuestion.question}
           </h1>

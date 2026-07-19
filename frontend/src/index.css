@@ -21,8 +21,9 @@
 
 .app-shell {
   background:
-    radial-gradient(circle at 50% -20%, rgba(33, 113, 179, 0.2), transparent 38rem),
-    radial-gradient(circle at 5% 90%, rgba(71, 85, 105, 0.12), transparent 32rem),
+    radial-gradient(circle at 50% -20%, rgba(32, 111, 190, 0.24), transparent 38rem),
+    radial-gradient(circle at 0% 55%, rgba(77, 44, 150, 0.11), transparent 30rem),
+    radial-gradient(circle at 95% 85%, rgba(13, 148, 136, 0.08), transparent 34rem),
     #0b131e;
 }
 
@@ -52,15 +53,75 @@
 }
 
 .idle-title {
-  font-size: clamp(3.25rem, 11vw, 5.8rem);
+  font-size: clamp(3.25rem, 11vw, 6.1rem);
   font-weight: 800;
-  letter-spacing: -0.06em;
-  line-height: 0.94;
+  letter-spacing: -0.068em;
+  line-height: 0.92;
 }
 
 .idle-subtitle {
   font-size: clamp(1rem, 2vw, 1.25rem);
   line-height: 1.65;
+}
+
+.workspace-nav {
+  margin-bottom: clamp(2.25rem, 7vh, 5rem);
+}
+
+.brand-lockup {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: #e2e8f0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.brand-mark {
+  display: grid;
+  width: 1.75rem;
+  height: 1.75rem;
+  place-items: center;
+  border: 1px solid rgba(186, 230, 253, 0.28);
+  border-radius: 0.55rem;
+  color: white;
+  background: linear-gradient(145deg, #38bdf8, #4f46e5);
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.28);
+}
+
+.settings-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.48rem;
+  min-height: 2.5rem;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 0.75rem;
+  color: #cbd5e1;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: rgba(9, 20, 32, 0.58);
+  transition: border-color 180ms ease, background 180ms ease, color 180ms ease;
+}
+
+.settings-toggle:hover,
+.settings-toggle-active {
+  border-color: rgba(125, 211, 252, 0.38);
+  color: #eff6ff;
+  background: rgba(16, 43, 66, 0.66);
+}
+
+.settings-provider {
+  padding: 0.16rem 0.38rem;
+  border-radius: 0.38rem;
+  color: #93c5fd;
+  background: rgba(59, 130, 246, 0.12);
+}
+
+.settings-disclosure {
+  margin-top: 1.65rem;
+  animation: settings-reveal 180ms ease-out both;
 }
 
 .provider-panel {
@@ -99,9 +160,11 @@
 .prompt-composer {
   border: 1px solid rgba(125, 211, 252, 0.26);
   background: linear-gradient(145deg, rgba(8, 21, 33, 0.94), rgba(7, 17, 27, 0.9));
-  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28), inset 0 1px rgba(255, 255, 255, 0.04);
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.3), inset 0 1px rgba(255, 255, 255, 0.05);
   transition: border-color 180ms ease, box-shadow 180ms ease;
 }
+
+.prompt-hint { color: #64748b; }
 
 .prompt-composer:focus-within {
   box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1), 0 24px 70px rgba(0, 0, 0, 0.35);
@@ -124,6 +187,12 @@
   border: 1px solid rgba(125, 211, 252, 0.2);
   background: #111a20;
   box-shadow: 0 28px 90px rgba(0, 0, 0, 0.35);
+}
+
+.player-controls {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(145deg, rgba(13, 27, 40, 0.94), rgba(6, 16, 27, 0.92));
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.04), 0 18px 48px rgba(0, 0, 0, 0.2);
 }
 
 .lesson-hero {
@@ -209,41 +278,6 @@
   animation: subtitle-word-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.narration-pointer {
-  position: absolute;
-  z-index: 15;
-  top: 28%;
-  display: grid;
-  justify-items: center;
-  pointer-events: none;
-  animation: pointer-bob 1.35s ease-in-out infinite;
-}
-
-.narration-pointer-left { left: 24%; }
-.narration-pointer-center { left: 50%; margin-left: -0.425rem; }
-.narration-pointer-right { right: 24%; }
-
-.narration-pointer-dot {
-  width: 0.85rem;
-  height: 0.85rem;
-  border: 2px solid #e0f2fe;
-  border-radius: 999px;
-  background: #38bdf8;
-  box-shadow: 0 0 0 7px rgba(56, 189, 248, 0.19), 0 0 24px rgba(56, 189, 248, 0.88);
-}
-
-.narration-pointer-line {
-  width: 1px;
-  height: 2.8rem;
-  margin-top: 0.35rem;
-  background: linear-gradient(#7dd3fc, transparent);
-}
-
-@keyframes pointer-bob {
-  0%, 100% { transform: translateY(-4px); }
-  50% { transform: translateY(4px); }
-}
-
 @keyframes subtitle-word-in {
   from { opacity: 0; transform: translateY(0.55rem) scale(0.96); }
   to { opacity: 1; transform: translateY(0) scale(1); }
@@ -318,7 +352,67 @@
   font-weight: 500;
 }
 
+.generation-card,
+.assessment-card,
+.results-card {
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  background:
+    radial-gradient(circle at 0% 0%, rgba(56, 189, 248, 0.1), transparent 22rem),
+    linear-gradient(145deg, rgba(17, 32, 47, 0.95), rgba(8, 19, 31, 0.96));
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.055), 0 28px 80px rgba(0, 0, 0, 0.32);
+}
+
+.generation-status {
+  padding: 0.32rem 0.55rem;
+  border: 1px solid rgba(125, 211, 252, 0.18);
+  border-radius: 999px;
+  color: #bae6fd;
+  font-size: 0.67rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: rgba(14, 116, 144, 0.16);
+}
+
+.generation-preview {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(125, 211, 252, 0.1);
+}
+
+.generation-preview::after {
+  position: absolute;
+  inset: 0;
+  content: '';
+  background: linear-gradient(105deg, transparent 30%, rgba(255, 255, 255, 0.07) 46%, transparent 62%);
+  animation: loading-sheen 1.8s ease-in-out infinite;
+}
+
+.assessment-page,
+.results-page,
+.generation-page {
+  background: radial-gradient(circle at 50% 15%, rgba(37, 99, 235, 0.09), transparent 30rem);
+}
+
+.score-orb {
+  border: 1px solid rgba(125, 211, 252, 0.35);
+  background: radial-gradient(circle at 35% 25%, rgba(125, 211, 252, 0.2), transparent 44%), linear-gradient(145deg, rgba(30, 64, 175, 0.43), rgba(91, 33, 182, 0.35));
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.14), 0 18px 54px rgba(37, 99, 235, 0.2);
+}
+
+@keyframes settings-reveal {
+  from { opacity: 0; transform: translateY(-0.35rem); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes loading-sheen {
+  from { transform: translateX(-120%); }
+  to { transform: translateX(120%); }
+}
+
 @media (max-width: 520px) {
+  .workspace-nav { margin-bottom: 2.5rem; }
+  .settings-toggle > span:nth-child(2) { display: none; }
   .lesson-hero { padding-bottom: 4.5rem; }
   .concept-card-primary { width: 58%; }
   .concept-card-secondary { width: 67%; margin-top: 3rem; }

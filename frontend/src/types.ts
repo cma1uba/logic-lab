@@ -10,7 +10,6 @@ export interface LogictabPayload {
       type: 'image' | 'code' | 'diagram' | 'analogy';
       title: string;
       content: string;
-      focusPosition: 'left' | 'center' | 'right';
     };
   }[];
   quiz: {
