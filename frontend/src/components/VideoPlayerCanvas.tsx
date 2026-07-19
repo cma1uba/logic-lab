@@ -289,7 +289,7 @@ export function VideoPlayerCanvas({ payload, onFinished }: VideoPlayerCanvasProp
     </div>
   )
   const visualSubtitle = (
-    <div className="visual-subtitle mt-4 rounded-xl px-4 py-3 text-left text-sm leading-6 sm:px-6 sm:py-4 sm:text-base sm:leading-7">
+    <div className="visual-subtitle mt-3 rounded-xl px-4 py-2.5 text-left text-sm leading-5 sm:px-5 sm:py-3 sm:leading-6">
       {captionContent}
     </div>
   )
@@ -298,21 +298,21 @@ export function VideoPlayerCanvas({ payload, onFinished }: VideoPlayerCanvasProp
     || Boolean(currentSegment.imageDataUrl)
 
   return (
-    <section className="lesson-page flex min-h-screen flex-col px-4 py-5 sm:px-7 sm:py-7">
+    <section className="lesson-page flex min-h-screen flex-col px-3 py-3 sm:px-5 sm:py-4">
       <div className="lesson-frame mx-auto flex w-full max-w-6xl flex-1 flex-col overflow-hidden rounded-2xl">
-        <div className="lesson-hero relative px-6 pt-7 pb-20 sm:px-10 sm:pt-10">
+        <div className="lesson-hero relative px-5 pt-5 pb-14 sm:px-7 sm:pt-6">
           <div className="lesson-hero-orb lesson-hero-orb-left" />
           <div className="lesson-hero-orb lesson-hero-orb-right" />
           <div className="relative flex items-center justify-between text-xs font-semibold tracking-[0.16em] text-cyan-100/80 uppercase">
             <span>Logictab lesson</span>
             <span>Slide {currentSegmentIndex + 1} / {payload.segments.length}</span>
           </div>
-          <h1 className="relative mt-8 max-w-3xl text-3xl font-bold tracking-tight text-white sm:text-5xl">{payload.topic}</h1>
+          <h1 className="relative mt-5 max-w-3xl text-2xl font-bold tracking-tight text-white sm:text-4xl">{payload.topic}</h1>
         </div>
 
-        <div className="lesson-content relative z-10 mx-3 -mt-10 flex flex-1 flex-col rounded-2xl border border-white/10 bg-[#08121d]/95 p-4 shadow-[0_24px_70px_rgba(0,0,0,0.28)] sm:mx-10 sm:p-7">
+        <div className="lesson-content relative z-10 mx-2 -mt-7 flex flex-1 flex-col rounded-2xl border border-white/10 bg-[#08121d]/95 p-3 shadow-[0_24px_70px_rgba(0,0,0,0.28)] sm:mx-6 sm:p-4">
           {currentSegment.visual.type === 'code' && (
-            <div className="visual-canvas code-visual relative min-h-72 overflow-hidden rounded-xl border border-slate-500/30 p-5 sm:min-h-96 sm:p-8">
+            <div className="visual-canvas code-visual relative min-h-56 overflow-hidden rounded-xl border border-slate-500/30 p-4 sm:min-h-72 sm:p-5">
               <div className="visual-grid" />
               <div className="relative z-10 mx-auto max-w-3xl overflow-auto rounded-xl border border-sky-300/15 bg-slate-950/90 shadow-2xl">
                 <div className="flex items-center gap-2 border-b border-white/10 px-4 py-3">
@@ -321,13 +321,13 @@ export function VideoPlayerCanvas({ payload, onFinished }: VideoPlayerCanvasProp
                   <span className="size-2 rounded-full bg-emerald-400" />
                   <span className="ml-2 text-xs font-semibold tracking-[0.12em] text-slate-400 uppercase">{currentSegment.visual.title}</span>
                 </div>
-                <pre className="m-0 p-5 text-left text-sm leading-7 text-sky-100 sm:p-7 sm:text-base"><code>{currentSegment.visual.content}</code></pre>
+                <pre className="m-0 p-4 text-left text-sm leading-6 text-sky-100 sm:p-5"><code>{currentSegment.visual.content}</code></pre>
               </div>
             </div>
           )}
 
           {currentSegment.visual.type === 'diagram' && (
-            <div className="visual-canvas relative flex min-h-72 items-center overflow-hidden rounded-xl border border-slate-500/30 p-5 sm:min-h-96 sm:p-8">
+            <div className="visual-canvas relative flex min-h-56 items-center overflow-hidden rounded-xl border border-slate-500/30 p-4 sm:min-h-72 sm:p-5">
               <div className="visual-grid" />
               <div className="diagram-flow relative z-10 mx-auto flex w-full flex-wrap items-center justify-center gap-3">
                 {diagramItems.map((item, index) => (
@@ -341,7 +341,7 @@ export function VideoPlayerCanvas({ payload, onFinished }: VideoPlayerCanvasProp
           )}
 
           {(currentSegment.visual.type === 'image' || currentSegment.visual.type === 'analogy') && currentSegment.imageDataUrl && (
-            <div className="visual-canvas relative flex min-h-72 flex-1 overflow-hidden rounded-xl border border-slate-500/30 sm:min-h-96">
+            <div className="visual-canvas relative flex min-h-56 flex-1 overflow-hidden rounded-xl border border-slate-500/30 sm:min-h-72">
               <div className="visual-grid" />
               <img
                 alt={`Lesson illustration for step ${currentSegmentIndex + 1}`}
@@ -360,17 +360,17 @@ export function VideoPlayerCanvas({ payload, onFinished }: VideoPlayerCanvasProp
           {hasRenderableVisual && visualSubtitle}
 
           {!hasRenderableVisual && (
-            <div className="lesson-narration mx-auto flex w-full max-w-3xl items-center rounded-2xl px-5 py-6 sm:px-8 sm:py-8">
+            <div className="lesson-narration mx-auto flex w-full max-w-3xl items-center rounded-2xl px-5 py-5 sm:px-7 sm:py-6">
               {captionContent}
             </div>
           )}
         </div>
 
-        <div className="player-controls mx-3 mt-4 rounded-2xl p-4 sm:mx-10 sm:mt-5 sm:p-5">
+        <div className="player-controls mx-2 mt-3 rounded-2xl p-3 sm:mx-6 sm:p-4">
         <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
           <div className="playback-progress-indicator h-full rounded-full bg-gradient-to-r from-blue-500 to-violet-500" ref={progressBarRef} />
         </div>
-        <div className="mt-4 flex items-center justify-between">
+        <div className="mt-3 flex items-center justify-between">
           <button aria-label={isPlaying ? 'Pause narration' : 'Play narration'} className="grid size-10 place-items-center rounded-full bg-blue-500 text-white transition hover:bg-blue-400" onClick={togglePlayback} type="button">
             {isPlaying ? 'Ⅱ' : '▶'}
           </button>
