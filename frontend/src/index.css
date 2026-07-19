@@ -175,6 +175,7 @@
 
 .generated-visual {
   animation: visual-reveal 450ms ease-out;
+  will-change: opacity, transform;
 }
 
 @keyframes visual-reveal {
