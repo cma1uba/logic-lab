@@ -105,6 +105,60 @@ const parseGeneratedPayload = (content) => {
   return payload
 }
 
+const createVisualPrompt = (visualPrompt) => (
+  `Create a polished educational illustration for a lesson. ${visualPrompt} `
+  + 'Use a clean, modern editorial style with clear visual storytelling. Do not include any words, labels, letters, or watermarks.'
+)
+
+const asDataUrl = (mimeType, base64Data) => (
+  typeof base64Data === 'string' && base64Data
+    ? `data:${mimeType ?? 'image/png'};base64,${base64Data}`
+    : undefined
+)
+
+const generateSegmentVisuals = async (modelType, activeKey, videoSteps) => {
+  if (modelType === 'claude') {
+    return videoSteps
+  }
+
+  const generateOne = async (step) => {
+    try {
+      if (modelType === 'openai') {
+        const client = new OpenAI({ apiKey: activeKey })
+        const image = await client.images.generate({
+          model: 'gpt-image-1',
+          prompt: createVisualPrompt(step.visual_prompt),
+          size: '1024x1024',
+          quality: 'low',
+          output_format: 'webp',
+        })
+        return { ...step, imageDataUrl: asDataUrl('image/webp', image.data?.[0]?.b64_json) }
+      }
+
+      const client = new GoogleGenAI({ apiKey: activeKey })
+      const image = await client.models.generateContent({
+        model: 'gemini-3.1-flash-image',
+        contents: createVisualPrompt(step.visual_prompt),
+        config: {
+          responseModalities: ['IMAGE'],
+          responseFormat: { image: { aspectRatio: '16:9' } },
+        },
+      })
+      const imagePart = image.candidates?.flatMap((candidate) => candidate.content?.parts ?? [])
+        .find((part) => part.inlineData?.data)
+      return {
+        ...step,
+        imageDataUrl: asDataUrl(imagePart?.inlineData?.mimeType, imagePart?.inlineData?.data),
+      }
+    } catch (error) {
+      console.warn(`Logictab ${modelType} visual generation failed for step ${step.id}:`, error)
+      return step
+    }
+  }
+
+  return Promise.all(videoSteps.map(generateOne))
+}
+
 const enforceRateLimit = (req, res, next) => {
   const now = Date.now()
   const key = req.ip
@@ -218,7 +272,9 @@ app.post('/api/generate', async (req, res) => {
       }
     }
 
-    return res.json(parseGeneratedPayload(generatedText))
+    const payload = parseGeneratedPayload(generatedText)
+    const videoSteps = await generateSegmentVisuals(modelType, activeKey, payload.video_steps)
+    return res.json({ ...payload, video_steps: videoSteps })
   } catch (error) {
     console.error(`Logictab ${modelType} generation failed:`, error)
     return res.status(502).json({ error: 'The selected AI provider could not generate a lesson.' })

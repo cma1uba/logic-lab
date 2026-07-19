@@ -113,15 +113,22 @@ export function VideoPlayerCanvas({ payload, onFinished }: VideoPlayerCanvasProp
         <div className="lesson-content relative z-10 mx-3 -mt-10 flex flex-1 flex-col rounded-2xl border border-white/10 bg-[#08121d]/95 p-4 shadow-[0_24px_70px_rgba(0,0,0,0.28)] sm:mx-10 sm:p-7">
           <div className="visual-canvas relative flex min-h-72 flex-1 overflow-hidden rounded-xl border border-slate-500/30 p-5 sm:min-h-96 sm:p-8">
             <div className="visual-grid" />
-            <div className="concept-card concept-card-primary">
-              <span className="concept-label">Current concept</span>
-              <strong>{String(currentSegment.id).padStart(2, '0')}</strong>
-              <span>Explore</span>
-            </div>
-            <div className="concept-connector" />
-            <div className="concept-card concept-card-secondary">
-              <span className="concept-label">Visual prompt</span>
-              <p>{currentSegment.visual_prompt}</p>
+            {currentSegment.imageDataUrl ? (
+              <img
+                alt={`Lesson illustration for step ${currentSegmentIndex + 1}`}
+                className="generated-visual absolute inset-0 size-full object-cover"
+                src={currentSegment.imageDataUrl}
+              />
+            ) : (
+              <div className="visual-fallback relative z-10 m-auto grid size-40 place-items-center rounded-full sm:size-52">
+                <div className="visual-fallback-inner grid size-28 place-items-center rounded-full sm:size-36">
+                  <span className="text-4xl font-bold text-sky-100 sm:text-5xl">{String(currentSegment.id).padStart(2, '0')}</span>
+                </div>
+              </div>
+            )}
+            <div className="absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-[#06111c]/70 to-transparent" />
+            <div className="absolute top-4 left-4 rounded-full border border-white/15 bg-slate-950/70 px-3 py-1.5 text-[0.65rem] font-bold tracking-[0.14em] text-sky-200 uppercase backdrop-blur">
+              Visual {currentSegmentIndex + 1}
             </div>
           </div>
 
